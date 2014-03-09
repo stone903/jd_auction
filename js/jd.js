@@ -1,3 +1,25 @@
+/*
+@TODO:  Seems the timer will be delay, need to improve to get the timing from JD
+current: send the request to JD to get the current on JD Server
+		 http://auction.jd.com/json/paimai/now?t=1394386281274
+		 ack will be:
+		 {"now":1394386280849}
+		 
+endTime: get the endTime on webPage source code:
+		        var dealModel={init_price:1.0,startTimeMili:1394413200000,endTimeMili:1394415602000};
+				 dealModel['auctionStatus']=0;
+				var memberId='stone903';
+			var priceLowerOffset = "1.0";
+			var priceHigherOffset = "200.0";
+			var startPrice = "1.0";
+			var jdPrice = parseInt('99.0');
+
+
+
+*/
+
+
+
 /* Global Setting */
 /* Print The Timing Info */
 var endCommonTime = $('.over-time>strong').text();
@@ -12,7 +34,7 @@ console.log("结束时间为："+endTime+"秒.");
 void(
   globalTimer = setInterval(function(){
 	endTime = endTime - 0.2;
-	if(endTime < 0)
+	if(endTime < -40)
     {
 	  clearInterval(globalTimer);
 	  clearInterval(loopQuizTimer);
@@ -23,19 +45,20 @@ void(
 /* Print the Relate Info */
 var aboutme = "***京东夺宝岛抢拍-谁与争锋***\n" 
 		+ "提供自动报价(半自动)和自动抢拍（全自动）两种功能\n"
-		+ "六折价（原价6折值，为抢拍出价提供参考）\n"
+		+ "四折价（原价4折值，为抢拍出价提供参考）\n"
 		+ "最高出价（自己愿接受的最高价，程序会自动在当前商品报价+1，到达最高价放弃出价，放弃此商品。)\n";
 console.log(aboutme);
 console.log("有任何问题 %c QQ 244320233", "color:red");
 console.log("个人主页：http://zhanghang.org");
-var priceLimit = parseInt(/\d+/.exec($(".fore4 del").html())*1*0.6);
+var priceLimit = parseInt(/\d+/.exec($(".fore4 del").html())*1*0.4);
 var addr = document.location.href;
 var uid = /[\d]{4,8}/.exec(addr)[0];
 var timeInterval = 500;
 var loopCRZtimer;
 var loopQuizTimer;
+var loopCRZtimerCnt = 0;
 var code = "<div id='qp_div'>"
-		+ "商品6折价：<input type='text' id='qp_price_limit' readonly />&nbsp;&nbsp;&nbsp;&nbsp;"
+		+ "商品4折价：<input type='text' id='qp_price_limit' readonly />&nbsp;&nbsp;&nbsp;&nbsp;"
 			+ "最高出价<input type='text' id='qp_max_price' />&nbsp;&nbsp;&nbsp;&nbsp;"
 			+ "刷新间隔<input type='text' id='fresh_TimeInterval' />&nbsp;&nbsp;&nbsp;&nbsp;"
 		+ "<input type='button' value='马上开抢' id='qp_btn_begin' class='qp_btn'/>&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -64,20 +87,29 @@ function loopCzyBuyMain(uid, priceLimit, timeInterval) {
 	if(endTime < 10)
 	{
 		crazyBuying(uid, priceLimit);
-		if(endTime < 0)
+		if(endTime < -30)
 		{
 		  clearInterval(loopCRZtimer);
 		}
 	}
 	else
 	{
-		console.info("Timer"+endTime);
+		if(loopCRZtimerCnt%20 == 0)
+		{
+			//For Debug
+			//loopCRZtimerCnt = loopCRZtimerCnt+1;
+			var time = new Date().getTime();
+			time = time/1000;
+			console.info("Timer"+endTime+" "+time);
+		}
 	}
 	
 }
 
 
 function loopCrazyBuying(uid, priceLimit,timeInterval) {
+	timeInterval = $('#fresh_TimeInterval').val();
+	console.info("刷行间隔:"+timeInterval+" ms.");
 	loopCRZtimer = setInterval("loopCzyBuyMain(uid, priceLimit, timeInterval)",timeInterval);
 }
 
