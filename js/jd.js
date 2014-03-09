@@ -1,4 +1,26 @@
+/* Global Setting */
+/* Print The Timing Info */
+var endCommonTime = $('.over-time>strong').text();
+var endTimeMins = Math.floor(endCommonTime/100);
+var endTimeSeconds = endCommonTime%100
+var endTime = endTimeMins*60+endTimeSeconds;
+console.log("结束时间为："+endCommonTime);
+console.log("结束时间为："+endTimeMins+"分"+endTimeSeconds+"秒.");
+console.log("结束时间为："+endTime+"秒.");
 
+/* Set a global Timer to simulator the time */
+void(
+  globalTimer = setInterval(function(){
+	endTime = endTime - 0.2;
+	if(endTime < 0)
+    {
+	  clearInterval(globalTimer);
+	  clearInterval(loopQuizTimer);
+    }
+  }, 200)
+)
+
+/* Print the Relate Info */
 var aboutme = "***京东夺宝岛抢拍-谁与争锋***\n" 
 		+ "提供自动报价(半自动)和自动抢拍（全自动）两种功能\n"
 		+ "六折价（原价6折值，为抢拍出价提供参考）\n"
@@ -9,21 +31,59 @@ console.log("个人主页：http://zhanghang.org");
 var priceLimit = parseInt(/\d+/.exec($(".fore4 del").html())*1*0.6);
 var addr = document.location.href;
 var uid = /[\d]{4,8}/.exec(addr)[0];
+var timeInterval = 500;
+var loopCRZtimer;
+var loopQuizTimer;
 var code = "<div id='qp_div'>"
 		+ "商品6折价：<input type='text' id='qp_price_limit' readonly />&nbsp;&nbsp;&nbsp;&nbsp;"
 			+ "最高出价<input type='text' id='qp_max_price' />&nbsp;&nbsp;&nbsp;&nbsp;"
-		+ "<input type='button' value='后台开抢' id='qp_btn_begin' class='qp_btn'/>&nbsp;&nbsp;&nbsp;&nbsp;"
+			+ "刷新间隔<input type='text' id='fresh_TimeInterval' />&nbsp;&nbsp;&nbsp;&nbsp;"
+		+ "<input type='button' value='马上开抢' id='qp_btn_begin' class='qp_btn'/>&nbsp;&nbsp;&nbsp;&nbsp;"
+		+"<input type='button' value='鬼子进村' id='qp_btn_loop_begin' class='qp_btn'/>&nbsp;&nbsp;&nbsp;&nbsp;"
 		+ "<input type='button' value='仅刷价格' id='qp_btn_refresh' class='qp_btn' />&nbsp;&nbsp;&nbsp;&nbsp;"
 		+ "【开启控制台可查看抢拍提示】</div>";
 $('body').prepend(code);
 $('#qp_price_limit').val(priceLimit);
 $('#qp_max_price').val(priceLimit);
+$('#fresh_TimeInterval').val(timeInterval);
 
 $('#qp_btn_refresh').on('click', function(){queryPrice(uid, priceLimit)});
 $('#qp_btn_begin').on('click', function(){crazyBuying(uid, priceLimit)});
+$('#qp_btn_loop_begin').on('click', function(){loopCrazyBuying(uid, priceLimit, timeInterval)});
 
-function queryPrice(uid, priceLimit) {
-	console.info("自动报价，"+uid+"自动输入价格。");
+/* Function to get a Random Num */
+function GetRandomNum(Min,Max)
+{   
+var Range = Max - Min;   
+var Rand = Math.random();   
+return(Min + Math.round(Rand * Range));   
+}
+
+
+function loopCzyBuyMain(uid, priceLimit, timeInterval) {
+	if(endTime < 10)
+	{
+		crazyBuying(uid, priceLimit);
+		if(endTime < 0)
+		{
+		  clearInterval(loopCRZtimer);
+		}
+	}
+	else
+	{
+		console.info("Timer"+endTime);
+	}
+	
+}
+
+
+function loopCrazyBuying(uid, priceLimit,timeInterval) {
+	loopCRZtimer = setInterval("loopCzyBuyMain(uid, priceLimit, timeInterval)",timeInterval);
+}
+
+
+function queryPriceMain(uid, priceLimit) {
+	console.info("自动报价，"+uid+"自动输入价格。时间："+endTime);
 	var price;
 	var priceMax = $('#qp_max_price').val();
 	var time = new Date().getTime();
@@ -39,15 +99,20 @@ function queryPrice(uid, priceLimit) {
 	});
 }
 
+function queryPrice(uid, priceLimit){
+	loopQuizTimer = setInterval("queryPriceMain(uid, priceLimit)",2*timeInterval);
+}
+
 function crazyBuying(uid, priceLimit) {
 	console.info("抢拍商品"+uid+"自动提交抢拍价。");
 	var price;
 	var priceMax = $('#qp_max_price').val();
 	var time = new Date().getTime();
+	var increaseStep = GetRandomNum(1,5);
 	var queryIt = "http://auction.jd.com/json/paimai/bid_records?t="
 			+ time + "&pageNo=1&pageSize=1&dealId=" + uid;
 	$.get(queryIt, function(data){
-		price = data.datas[0].price*1+1;
+		price = data.datas[0].price*1+increaseStep;
 		if (price<=priceMax) {
 			var buyIt = "http://auction.jd.com/json/paimai/bid?t="
 				+ time + "&dealId=" + uid + "&price=" + price;
