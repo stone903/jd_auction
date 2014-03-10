@@ -1,4 +1,5 @@
-/*
+﻿/*
+@TODO: userID
 @TODO:  Seems the timer will be delay, need to improve to get the timing from JD
 current: send the request to JD to get the current on JD Server
 		 http://auction.jd.com/json/paimai/now?t=1394386281274
@@ -18,23 +19,65 @@ endTime: get the endTime on webPage source code:
 
 */
 
-
-
 /* Global Setting */
+
 /* Print The Timing Info */
-var endCommonTime = $('.over-time>strong').text();
-var endTimeMins = Math.floor(endCommonTime/100);
-var endTimeSeconds = endCommonTime%100
-var endTime = endTimeMins*60+endTimeSeconds;
-console.log("结束时间为："+endCommonTime);
-console.log("结束时间为："+endTimeMins+"分"+endTimeSeconds+"秒.");
-console.log("结束时间为："+endTime+"秒.");
+/*  and  */
+var scriptStr = $("script").text().toString();
+//var userIdStr = scriptStr.match(new RegExp('var memberId=\''+"\."+'\'')).toString();
+var userIdStr = scriptStr.match(new RegExp('var memberId=\''+"stone903"+'\'')).toString();
+var userId = userIdStr.substring(userIdStr.indexOf('\'')+1,userIdStr.length-1);
+console.log("用户名为："+userId);
+/* StartTime */
+var startTimeStr = scriptStr.match(new RegExp('startTimeMili:'+"\\d+")).toString();
+var startTime = startTimeStr.match(new RegExp("\\d+"));
+/* EndTime */
+var endTimeStr = scriptStr.match(new RegExp('endTimeMili:'+"\\d+")).toString();
+var endTime = endTimeStr.match(new RegExp("\\d+"));
+/* Current Time */
+var currentTimeStr = scriptStr.match(new RegExp('_nowMil='+"\\d+")).toString();
+var currentTime = currentTimeStr.match(new RegExp("\\d+"));
+/* AuctionTime */
+var auctionTime = Math.floor((endTime - startTime)/60000);
+/* Rest Time */
+var restTime = Math.floor((endTime - currentTime)/1000);
+
+console.log("StartTime: "+startTime+"    EndTime: "+ endTime+"    CurrentTime: "+currentTime);
+console.log("拍卖时长为："+auctionTime+" 分钟");
+console.log("剩余时间为："+restTime+" 秒");
+
+function GetServerTime()
+{   
+	var localTime = new Date().getTime();
+	var serverTime;
+	serverTime = 0;
+	var queryServerTime = "http://auction.jd.com/json/paimai/now?t="+ localTime;
+	$.get(queryServerTime, function(data){
+		serverTime = data.now;
+		console.log("serverTime ："+serverTime);
+		return parseInt(serverTime);
+	});	
+}
+
+void(
+  serverlTimer = setInterval(function(){
+	var localTime = new Date().getTime();
+	var serverTime;
+	//serverTime = GetServerTime();
+	var queryServerTime = "http://auction.jd.com/json/paimai/now?t="+ localTime;
+	$.get(queryServerTime, function(data){
+	serverTime = data.now;
+	console.log("serverTime ："+serverTime);
+	restTime = Math.floor((endTime - serverTime)/1000);
+	});	
+  }, 5000)
+)
 
 /* Set a global Timer to simulator the time */
 void(
   globalTimer = setInterval(function(){
-	endTime = endTime - 0.2;
-	if(endTime < -40)
+	restTime = restTime - 0.2;
+	if(restTime < -40)
     {
 	  clearInterval(globalTimer);
 	  clearInterval(loopQuizTimer);
@@ -50,9 +93,11 @@ var aboutme = "***京东夺宝岛抢拍-谁与争锋***\n"
 console.log(aboutme);
 console.log("有任何问题 %c QQ 244320233", "color:red");
 console.log("个人主页：http://zhanghang.org");
+
 var priceLimit = parseInt(/\d+/.exec($(".fore4 del").html())*1*0.4);
 var addr = document.location.href;
 var uid = /[\d]{4,8}/.exec(addr)[0];
+
 var timeInterval = 500;
 var loopCRZtimer;
 var loopQuizTimer;
@@ -84,10 +129,10 @@ return(Min + Math.round(Rand * Range));
 
 
 function loopCzyBuyMain(uid, priceLimit, timeInterval) {
-	if(endTime < 10)
+	if(restTime < 10)
 	{
 		crazyBuying(uid, priceLimit);
-		if(endTime < -30)
+		if(restTime < -30)
 		{
 		  clearInterval(loopCRZtimer);
 		}
@@ -100,7 +145,7 @@ function loopCzyBuyMain(uid, priceLimit, timeInterval) {
 			//loopCRZtimerCnt = loopCRZtimerCnt+1;
 			var time = new Date().getTime();
 			time = time/1000;
-			console.info("Timer"+endTime+" "+time);
+			console.info("Timer"+restTime+" "+time);
 		}
 	}
 	
@@ -115,7 +160,7 @@ function loopCrazyBuying(uid, priceLimit,timeInterval) {
 
 
 function queryPriceMain(uid, priceLimit) {
-	console.info("自动报价，"+uid+"自动输入价格。时间："+endTime);
+	console.info("自动报价，"+uid+"自动输入价格。时间："+restTime);
 	var price;
 	var priceMax = $('#qp_max_price').val();
 	var time = new Date().getTime();
@@ -140,20 +185,38 @@ function crazyBuying(uid, priceLimit) {
 	var price;
 	var priceMax = $('#qp_max_price').val();
 	var time = new Date().getTime();
-	var increaseStep = GetRandomNum(1,5);
+	var increaseStep = GetRandomNum(1,3);
 	var queryIt = "http://auction.jd.com/json/paimai/bid_records?t="
 			+ time + "&pageNo=1&pageSize=1&dealId=" + uid;
 	$.get(queryIt, function(data){
+		console.log("crazyBuying ："+data);
 		price = data.datas[0].price*1+increaseStep;
-		if (price<=priceMax) {
-			var buyIt = "http://auction.jd.com/json/paimai/bid?t="
-				+ time + "&dealId=" + uid + "&price=" + price;
-			$.get(buyIt, function(data){
-				sayMsg(data);
-			}, 'json');
-		} else {
-			console.info("超出限制价格，停止抢购！");
+		if(price > 53)
+		{
+			if(price < 59)
+			{
+				price = 59;
+			}
 		}
+		topPriceUserId = data.datas[0].userShowname;
+		console.info("当前最高价用户为 "+topPriceUserId);
+		if(topPriceUserId != userId)
+		{
+			if (price<=priceMax) {
+				var buyIt = "http://auction.jd.com/json/paimai/bid?t="
+					+ time + "&dealId=" + uid + "&price=" + price;
+				$.get(buyIt, function(data){
+					sayMsg(data);
+				}, 'json');
+			} else {
+				console.info("超出限制价格，停止抢购！");
+			}
+		}
+		else
+		{
+			console.info("最高价已经是你啦!!! "+ topPriceUserId);
+		}
+
 	});
 }
 
